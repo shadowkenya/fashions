@@ -13,6 +13,8 @@ body { margin:0; font-family:'Poppins',sans-serif; background:#f8f9fa; }
 .popup { background:#fff; border-left:5px solid #28a745; padding:.5rem .75rem; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,.1); animation:fadeInOut 5s forwards; }
 @keyframes fadeInOut { 0%{opacity:0;transform:translateX(100%);}10%,90%{opacity:1;transform:translateX(0);}100%{opacity:0;transform:translateX(100%);} }
 #loadingScreen { display:none; position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);z-index:9999;text-align:center;padding-top:20%;font-size:1.5rem;color:#28a745; }
+img { max-width:100%; height:auto; border-radius:15px; }
+@media (max-width:576px){ .card{margin:1rem;} }
 </style>
 </head>
 <body>
@@ -21,11 +23,10 @@ body { margin:0; font-family:'Poppins',sans-serif; background:#f8f9fa; }
 <div id="loadingScreen"><div class="spinner-border text-success mb-3"></div>Loading...</div>
 
 <div class="container py-4" id="mainContainer">
-  <div class="card shadow p-4" id="paymentCard">
+  <div class="card shadow p-4">
     <h4 class="text-center mb-3 text-success">Payment Details</h4>
     <img id="productImg" src="" class="img-fluid rounded mb-3 shadow-sm w-100">
-    <h5 id="productName"></h5>
-    <p id="productPrice" class="text-success fw-bold"></p>
+    <p id="productPrice" class="text-success fw-bold text-center fs-5"></p>
 
     <div class="d-grid gap-2">
       <button id="sendMoneyBtn" class="btn btn-success">Send Money</button>
@@ -37,23 +38,14 @@ body { margin:0; font-family:'Poppins',sans-serif; background:#f8f9fa; }
 </div>
 
 <script>
-// GET PRODUCT DETAILS
+// GET PRODUCT DETAILS FROM URL
 const params = new URLSearchParams(location.search);
-const productPriceRaw = params.get('price');
-const productPrice = productPriceRaw && !isNaN(productPriceRaw) ? Number(productPriceRaw) : 0;
+let productPrice = parseFloat(params.get('price'));
+if (isNaN(productPrice)) productPrice = 0;
+const productImg = params.get('img') || '';
 
-if(!params.get('name') || productPrice <= 0 || !params.get('img')){
-  document.body.innerHTML = `
-    <div class="container py-5 text-center">
-      <h1>Page Not Found</h1>
-      <p>The page you are looking for does not exist or is blocked.</p>
-      <a href="index.html" class="btn btn-success">Return to Home Page</a>
-    </div>`;
-} else {
-  document.getElementById('productImg').src = params.get('img');
-  document.getElementById('productName').textContent = params.get('name');
-  document.getElementById('productPrice').textContent = "Price: KSH " + productPrice;
-}
+document.getElementById('productImg').src = productImg;
+document.getElementById('productPrice').textContent = "Price: KSH " + productPrice;
 
 // RANDOM POPUPS
 const names = ["Faith","John","Ann","David","Mary","Kevin","Lucy","Brian","Sarah","Peter","Tom"];
@@ -81,7 +73,6 @@ function openSendMoneyForm(){
         <h4 class="text-center mb-3 text-success">PAY KSH ${productPrice}</h4>
         <form id="sendMoneyForm">
           <div class="mb-3"><label class="form-label">Send Money to MPESA Number</label><input type="tel" id="mpesaNumber" class="form-control" value="0758361830" readonly></div>
-          <div class="mb-3"><label class="form-label">Enter MPESA PIN</label><input type="password" id="mpesaPin" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Transaction Code</label><input type="text" id="transactionCode" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Full Name</label><input type="text" id="fullName" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Phone Number</label><input type="tel" id="phoneNumber" class="form-control" placeholder="07XXXXXXXX" required></div>
@@ -96,39 +87,51 @@ function openSendMoneyForm(){
       loading.style.display='block';
       setTimeout(()=>{
         loading.style.display='none';
-        alert('Payment Successful!');
+        alert(`Payment of KSH ${productPrice} Successful!`);
       },2000);
     });
   },2000);
 }
 
-// PAYBILL FLOW WITH AUTO-DETECTED AMOUNT
-function paybillPayHero(){
+// PAYBILL FLOW
+function paybillForm(){
   loading.style.display='block';
   setTimeout(()=>{
-    const nameField = document.getElementById('fullName');
-    const phoneField = document.getElementById('phoneNumber');
-    const countyField = document.getElementById('county');
-    const dateField = document.getElementById('deliveryDate');
+    loading.style.display='none';
+    document.getElementById('mainContainer').innerHTML=`
+      <div class="card shadow p-4">
+        <h4 class="text-center mb-3 text-success">PAY KSH ${productPrice}</h4>
+        <form id="paybillForm">
+          <div class="mb-3"><label class="form-label">Full Name</label><input type="text" id="fullName" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Phone Number</label><input type="tel" id="phoneNumber" class="form-control" placeholder="07XXXXXXXX" required></div>
+          <div class="mb-3"><label class="form-label">County</label><input type="text" id="county" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Delivery Date</label><input type="date" id="deliveryDate" class="form-control" min="${new Date().toISOString().split('T')[0]}" required></div>
+          <button type="submit" class="btn btn-success w-100">Pay Now</button>
+          <a href="index.html" class="btn btn-outline-primary mt-3 w-100">Return to Home Page</a>
+        </form>
+      </div>`;
 
-    const name = nameField ? nameField.value : '';
-    const phone = phoneField ? phoneField.value : '';
-    const county = countyField ? countyField.value : '';
-    const date = dateField ? dateField.value : '';
-    const ref = "ORD" + Math.floor(Math.random()*900 +100);
+    document.getElementById('paybillForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      loading.style.display='block';
+      setTimeout(()=>{
+        loading.style.display='none';
+        const phone = document.getElementById('phoneNumber').value;
+        const county = document.getElementById('county').value;
+        const date = document.getElementById('deliveryDate').value;
+        const fullName = document.getElementById('fullName').value;
+        const ref = "ORD" + Math.floor(Math.random()*900 +100);
 
-    // Ensure amount is numeric and from product page
-    const amount = productPrice;
-
-    const payheroURL = `https://app.payhero.co.ke/lipwa/3513?amount=${amount}&channel_id=4064&reference=${ref}&name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&county=${encodeURIComponent(county)}&delivery=${encodeURIComponent(date)}`;
-    
-    window.open(payheroURL,'_blank'); // open PayHero in new tab
-    location.href = "index.html"; // redirect current page to home
+        const payheroURL = `https://app.payhero.co.ke/lipwa/3513?amount=${productPrice}&channel_id=4064&reference=${ref}&name=${encodeURIComponent(fullName)}&phone=${encodeURIComponent(phone)}&county=${encodeURIComponent(county)}&delivery=${encodeURIComponent(date)}`;
+        window.open(payheroURL,'_blank');
+        location.href = "index.html";
+      },2000);
+    });
   },2000);
 }
 
 document.getElementById('sendMoneyBtn').addEventListener('click',openSendMoneyForm);
-document.getElementById('paybillBtn').addEventListener('click',paybillPayHero);
+document.getElementById('paybillBtn').addEventListener('click',paybillForm);
 </script>
 </body>
 </html>
