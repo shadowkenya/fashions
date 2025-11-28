@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avon Payment</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  background: url('https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+  background-size: cover;
+  overflow-x: hidden;
+}
+
+/* Card styling */
+.card {
+  border-radius:18px;
+  max-width:480px;
+  margin:2rem auto;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(6px);
+}
+
+/* Popups */
+#popup-container {
+  position: fixed;
+  top:1rem;
+  right:1rem;
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+}
+
+.popup {
+  background:#fff;
+  border-left:5px solid #28a745;
+  padding:.5rem .75rem;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
+  animation:fadeInOut 5s forwards;
+}
+
+@keyframes fadeInOut {
+  0%{opacity:0;transform:translateX(100%);}
+ 10%,90%{opacity:1;transform:translateX(0);}
+ 100%{opacity:0;transform:translateX(100%);}
+}
+
+/* Loading screen */
+#loadingScreen {
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(255,255,255,0.8);
+  z-index:9999;
+  text-align:center;
+  padding-top:20%;
+  font-size:1.5rem;
+  color:#28a745;
+}
+
+img {
+  max-width:100%;
+  height:auto;
+  border-radius:15px;
+}
+
+@media (max-width:576px){
+  .card { margin:1rem; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- Popups -->
+<div id="popup-container"></div>
+
+<!-- Loader -->
+<div id="loadingScreen">
+  <div class="spinner-border text-success mb-3"></div>
+  Loading...
+</div>
+
+<!-- Main content -->
+<div class="container py-4" id="mainContainer">
+  <div class="card shadow p-4">
+    <h4 class="text-center mb-3 text-success">Avon Payment Solution</h4>
+
+    <img id="productImg" src="" class="img-fluid rounded mb-3 shadow-sm w-100">
+
+    <p id="productPrice" class="text-success fw-bold text-center fs-5"></p>
+
+    <div class="d-grid gap-2">
+      <button id="sendMoneyBtn" class="btn btn-success">Send Money</button>
+      <button id="paybillBtn" class="btn btn-outline-success">Paybill</button>
+    </div>
+
+    <a href="index.html" class="btn btn-outline-primary mt-3 w-100">Return to Home Page</a>
+  </div>
+</div>
+
+<script>
+// GET PRODUCT DETAILS
+const params = new URLSearchParams(location.search);
+const productPriceParam = params.get('price');
+let productPrice = parseFloat(productPriceParam);
+if (isNaN(productPrice) || productPrice <= 0) productPrice = 0;
+
+const productImg = params.get('img') || '';
+
+document.getElementById('productImg').src = productImg;
+document.getElementById('productPrice').textContent = "Price: KSH " + productPrice;
+
+// RANDOM POPUPS
+const names = ["Faith","John","Ann","David","Mary","Kevin","Lucy","Brian","Sarah","Peter","Tom"];
+
+function randomPopup() {
+  const name = names[Math.floor(Math.random()*names.length)];
+  const last = Math.floor(1000 + Math.random()*9000).toString().slice(0,2);
+
+  const popup = document.createElement('div');
+  popup.className = 'popup';
+  popup.innerHTML = `<i class="fas fa-user-circle text-success"></i> ${name} 2547****${last} purchased now`;
+
+  document.getElementById('popup-container').appendChild(popup);
+  setTimeout(()=>popup.remove(),5000);
+}
+
+setInterval(randomPopup,8000);
+randomPopup();
+
+const loading = document.getElementById('loadingScreen');
+
+// SEND MONEY FORM
+function openSendMoneyForm(){
+  loading.style.display='block';
+
+  setTimeout(()=>{
+    loading.style.display='none';
+
+    document.getElementById('mainContainer').innerHTML = `
+      <div class="card shadow p-4">
+        <h4 class="text-center mb-3 text-success">PAY KSH ${productPrice}</h4>
+
+        <form id="sendMoneyForm">
+
+          <div class="mb-3">
+            <label class="form-label">Send Money to MPESA Number</label>
+            <input type="tel" id="mpesaNumber" class="form-control" value="0711834802" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Transaction Code</label>
+            <input type="text" id="transactionCode" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="fullName" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" id="phoneNumber" class="form-control" placeholder="07XXXXXXXX" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">County</label>
+            <input type="text" id="county" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Delivery Date</label>
+            <input type="date" id="deliveryDate" class="form-control" min="${new Date().toISOString().split('T')[0]}" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input type="text" id="amount" class="form-control" value="${productPrice}" readonly>
+          </div>
+
+          <button type="submit" class="btn btn-success w-100">Submit Payment</button>
+          <a href="index.html" class="btn btn-outline-primary mt-3 w-100">Return to Home Page</a>
+        </form>
+      </div>
+    `;
+
+    document.getElementById('sendMoneyForm').addEventListener('submit', e=>{
+      e.preventDefault();
+
+      loading.style.display='block';
+      setTimeout(()=>{
+        loading.style.display='none';
+        alert(`Payment of KSH ${productPrice} Successful!`);
+      },2000);
+    });
+  },2000);
+}
+
+// PAYBILL FORM
+function paybillForm(){
+  loading.style.display='block';
+
+  setTimeout(()=>{
+    loading.style.display='none';
+
+    document.getElementById('mainContainer').innerHTML = `
+      <div class="card shadow p-4">
+        <h4 class="text-center mb-3 text-success">PAY KSH ${productPrice}</h4>
+
+        <form id="paybillForm">
+
+          <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="fullName" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" id="phoneNumber" class="form-control" placeholder="07XXXXXXXX" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">County</label>
+            <input type="text" id="county" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Delivery Date</label>
+            <input type="date" id="deliveryDate" class="form-control" min="${new Date().toISOString().split('T')[0]}" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input type="text" id="amountPaybill" class="form-control" value="${productPrice}" readonly>
+          </div>
+
+          <button type="submit" class="btn btn-success w-100">Pay Now</button>
+          <a href="index.html" class="btn btn-outline-primary mt-3 w-100">Return to Home Page</a>
+        </form>
+      </div>
+    `;
+
+    document.getElementById('paybillForm').addEventListener('submit', e=>{
+      e.preventDefault();
+
+      loading.style.display='block';
+      setTimeout(()=>{
+        loading.style.display='none';
+
+        const phone = document.getElementById('phoneNumber').value;
+        const county = document.getElementById('county').value;
+        const date = document.getElementById('deliveryDate').value;
+        const fullName = document.getElementById('fullName').value;
+        const ref = "ORD" + Math.floor(Math.random()*900 +100);
+
+        const payheroURL =
+          `https://app.payhero.co.ke/lipwa/3513?amount=${productPrice}&channel_id=4064&reference=${ref}&name=${encodeURIComponent(fullName)}&phone=${encodeURIComponent(phone)}&county=${encodeURIComponent(county)}&delivery=${encodeURIComponent(date)}`;
+
+        window.open(payheroURL,'_blank');
+        location.href = "index.html";
+
+      },2000);
+    });
+  },2000);
+}
+
+document.getElementById('sendMoneyBtn').addEventListener('click', openSendMoneyForm);
+document.getElementById('paybillBtn').addEventListener('click', paybillForm);
+</script>
+
+</body>
+</html>
